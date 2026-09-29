@@ -1,1 +1,1 @@
-# weather-server
+# weather-station-server
