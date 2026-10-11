@@ -1,34 +1,41 @@
 CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 
-CREATE TABLE Users (
-    UID UUID PRIMARY KEY,
-    Email VARCHAR(255) NOT NULL UNIQUE,
-    ApiTokenHash VARCHAR(255) NOT NULL
+CREATE TABLE users (
+    uid UUID PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    api_token_hash BYTEA NOT NULL
 );
 
-CREATE TABLE Gateways (
-    UID UUID PRIMARY KEY,
-    GatewayHardwareID VARCHAR(255) NOT NULL UNIQUE,
-    UserUID UUID NOT NULL REFERENCES Users(UID) ON DELETE CASCADE
+CREATE TABLE gateways (
+    uid UUID PRIMARY KEY,
+    gateway_hardware_id UUID NOT NULL UNIQUE,
+    user_uid UUID NOT NULL REFERENCES users(uid) ON DELETE CASCADE
 );
 
-CREATE TABLE WeatherStations (
-    UID BIGINT PRIMARY KEY,
-    WeatherStationHardwareID VARCHAR(100) NOT NULL UNIQUE,
-    GatewayUID UUID NOT NULL REFERENCES Gateways(UID) ON DELETE CASCADE,
-    ErrorMask INTEGER DEFAULT 0,
-    Name VARCHAR(100)
+CREATE TABLE weather_stations (
+    uid BIGSERIAL PRIMARY KEY,
+    weather_station_hardware_id INT NOT NULL UNIQUE,
+    gateway_uid UUID NOT NULL REFERENCES gateways(uid) ON DELETE CASCADE,
+    error_mask SMALLINT DEFAULT 0,
+    name VARCHAR(100)
 );
 
-CREATE TABLE Measurements(
-    Time TIMESTAMPTZ NOT NULL,
-    WeatherStationUID BIGINT NOT NULL REFERENCES WeatherStations(UID) ON DELETE CASCADE,
-    Temperature NUMERIC(5, 2),
-    Humidity NUMERIC(5, 2),
-    Pressure NUMERIC(6, 2),
-    VoltageLevel NUMERIC(4, 2),
-    PRIMARY KEY (Time, WeatherStationUID)
+CREATE TABLE measurements(
+    time TIMESTAMPTZ NOT NULL,
+    weather_station_uid BIGINT NOT NULL REFERENCES weather_stations(uid),
+    temperature REAL,
+    humidity REAL,
+    pressure REAL,
+    voltage_level REAL,
+    PRIMARY KEY (time, weather_station_uid)
 );
 
 
-SELECT create_hypertable('Measurements', 'time');
+SELECT create_hypertable('measurements', 'time');
+
+ALTER TABLE measurements SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'weather_station_uid',
+    timescaledb.compress_orderby = 'time ASC'
+);
+SELECT add_compression_policy('measurements', INTERVAL '7 days');
