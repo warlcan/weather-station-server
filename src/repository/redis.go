@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -47,4 +48,9 @@ func (r *RedisRepository) ExistsString(key string) (int64, error) {
 		return 0, nil
 	}
 	return val, err
+}
+
+func (r *RedisRepository) WriteStringTTL(key string, value string, ttl int) error {
+	err := r.client.Set(r.ctx, key, value, time.Duration(ttl)*time.Minute).Err()
+	return err
 }
