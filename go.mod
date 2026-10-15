@@ -4,6 +4,7 @@ go 1.27.2
 
 require (
 	github.com/jackc/pgx v3.6.2+incompatible
+	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.23.0
 )
 
