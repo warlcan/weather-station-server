@@ -7,7 +7,7 @@ import (
 
 func VerifyTokenHandler(w http.ResponseWriter, r *http.Request) {
 
-	token := r.Header.Get("Auth")
+	token := r.Header.Get("Token")
 
 	if token == "" {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -20,4 +20,17 @@ func VerifyTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func SendCodeHandler(w http.ResponseWriter, r *http.Request) {
+	email := r.Header.Get("Email")
+
+	if email == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if services.SendCode(email) {
+
+	}
 }
