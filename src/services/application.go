@@ -8,16 +8,13 @@ import (
 	"weather-server/src/repository"
 )
 
-func HashToken(token string) string {
+func hashToken(token string) string {
 	hash := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(hash[:])
 }
 
 func IsTokenValid(receivedToken string) bool {
-	count, err := repository.Redis.ExistsString("token:" + HashToken(receivedToken))
-	fmt.Println(receivedToken + " " + HashToken(receivedToken))
-	fmt.Println(count)
-
+	count, err := repository.Redis.ExistsString("token:" + hashToken(receivedToken) + ":userid")
 	if err != nil {
 		log.Fatalf("Error in search: %v", err)
 	}
