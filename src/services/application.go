@@ -107,16 +107,23 @@ func VerifyCode(email string, receivedCode string) bool {
 		return false
 	}
 
-	if receivedCode == dbCode {
-		return true
+	if receivedCode != dbCode {
+		return false
 	}
 
-	return false
+	_, err = repository.PostgresDB.CreateUser(email)
+	return true
 }
 
 func GenerateUserToken(email string) string {
 	token := uuid.New().String()
-	err := repository.Redis.WriteString("token:"+hashToken(token)+":userid", email)
+	uid, err := repository.PostgresDB.GetUserId(email)
+	if err != nil {
+		log.Printf("Error get uid: %v", err)
+		return ""
+	}
+
+	err = repository.Redis.WriteString("token:"+hashToken(token)+":userid", uid)
 	if err != nil {
 		log.Printf("Error write token: %v", err)
 		return ""
