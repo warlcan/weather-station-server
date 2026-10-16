@@ -6,17 +6,18 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"html/template"
 	"log"
 	"math/big"
 	"net/smtp"
 	"os"
 	"weather-server/src/repository"
-	"weather-server/src/templates"
 )
 
 type EmailData struct {
 	SenderEmail    string
 	RecipientEmail string
+	Theme          string
 	Code           string
 }
 
@@ -57,16 +58,20 @@ func SendCode(email string) bool {
 		return false
 	}
 
-	tmpl, err := templates.GetTemplate("templates/mail/sendCodeTemplate.tmpl")
+	tmpl, err := template.ParseFiles(
+		"templates/mail/headers.tmpl",
+		"templates/mail/sendCodeTemplate.tmpl",
+	)
 
 	data := EmailData{
 		SenderEmail:    os.Getenv("EMAIL_ADDRESS"),
 		RecipientEmail: email,
+		Theme:          "Код подтверждения",
 		Code:           randomCode,
 	}
 
 	var body bytes.Buffer
-	err = tmpl.Execute(&body, data)
+	err = tmpl.ExecuteTemplate(&body, "headers.tmpl", data)
 	if err != nil {
 		log.Printf("Error executing template: %v", err)
 		return false
@@ -80,13 +85,13 @@ func SendCode(email string) bool {
 	smtpAuth := smtp.PlainAuth("", from, password, smtpHost)
 	err = smtp.SendMail(smtpHost+":"+smtpPort, smtpAuth, from, []string{email}, body.Bytes())
 	if err != nil {
-		log.Printf("Error in send mail: %v", err)
+		log.Printf("Error send mail: %v", err)
 		return false
 	}
 
 	err = repository.Redis.WriteStringTTL("email:"+email+":code", randomCode, 5)
 	if err != nil {
-		log.Printf("Error in write cache: %v", err)
+		log.Printf("Error write cache: %v", err)
 		return false
 	}
 

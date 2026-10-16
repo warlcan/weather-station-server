@@ -1,10 +1,66 @@
-From: {{.SenderEmail}}
-To: {{.RecipientEmail}}
-Subject: Код подтверждения
-MIME-version: 1.0;
-Content-Type: text/plain; charset="UTF-8";
+{{define "body"}}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Код подтверждения</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
 
-Здравствуйте!
-Ваш код активации для входа в систему: {{.Code}}
+    <table width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f6f8; padding: 40px 20px;">
+        <tr>
+            <td align="center">
+                <table width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin: 0 auto; max-width: 500px;">
+                    
+                    <tr>
+                        <td style="padding: 32px 32px 20px 32px; text-align: left;">
+                            <div style="font-size: 20px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.5px;">
+                                Личный кабинет
+                            </div>
+                        </td>
+                    </tr>
 
-С уважением, ваша команда поддержки.
+                    <tr>
+                        <td style="padding: 0 32px 24px 32px;">
+                            <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 700; color: #1a1a1a; line-height: 28px;">
+                                Код подтверждения
+                            </h1>
+                            <p style="margin: 0; font-size: 15px; line-height: 22px; color: #5c626a;">
+                                Здравствуйте! Вы получили это письмо, так как запросили одноразовый код для входа в систему.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0 32px 32px 32px;">
+                            <div style="background-color: #f1f3f7; border-radius: 8px; padding: 16px 24px; text-align: center; letter-spacing: 4px; font-size: 32px; font-weight: 700; color: #101112;">
+                                {{.Code}}
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0 32px 32px 32px; border-bottom: 1px solid #edf0f3;">
+                            <p style="margin: 0; font-size: 13px; line-height: 18px; color: #8a94a6;">
+                                Код действует в течение 5 минут. Если вы не запрашивали этот код, просто проигнорируйте письмо — ваш аккаунт в безопасности.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 24px 32px 32px 32px; background-color: #fafbfc; text-align: left;">
+                            <p style="margin: 0; font-size: 13px; color: #8a94a6;">
+                                С уважением,<br>Служба безопасности
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>
+{{end}}
