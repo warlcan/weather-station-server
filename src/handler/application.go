@@ -1,18 +1,22 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
+	"strings"
+	"weather-server/src/model"
 	"weather-server/src/services"
 )
 
 func VerifyTokenHandler(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
 
-	token := r.Header.Get("Token")
-
-	if token == "" {
+	if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
+
+	token := strings.TrimPrefix(authHeader, "Bearer ")
 
 	if !services.IsTokenValid(token) {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -23,14 +27,19 @@ func VerifyTokenHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func SendCodeHandler(w http.ResponseWriter, r *http.Request) {
-	email := r.Header.Get("Email")
+	var req model.SendCodeRequest
 
-	if email == "" {
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil || req.Email == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	if services.SendCode(email) {
+	defer r.Body.Close()
 
+	if services.SendCode(req.Email) {
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

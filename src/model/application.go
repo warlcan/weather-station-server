@@ -1,5 +1,5 @@
 package model
 
-type TokenVerifyRequest struct {
-	RecivedToken string `json:"token"`
+type SendCodeRequest struct {
+	Email string `json:"email"`
 }
