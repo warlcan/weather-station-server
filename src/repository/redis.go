@@ -23,7 +23,7 @@ func InitRedis(addr string, password string) error {
 
 	ctx := context.Background()
 	if err := rdb.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("redis ping failed: %w", err)
+		return fmt.Errorf("Redis ping failed: %w", err)
 	}
 
 	Redis = &RedisRepository{
@@ -48,6 +48,11 @@ func (r *RedisRepository) ExistsString(key string) (int64, error) {
 		return 0, nil
 	}
 	return val, err
+}
+
+func (r *RedisRepository) WriteString(key string, value string) error {
+	err := r.client.Set(r.ctx, key, value, 0).Err()
+	return err
 }
 
 func (r *RedisRepository) WriteStringTTL(key string, value string, ttl int) error {
