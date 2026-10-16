@@ -2,8 +2,7 @@ CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
 
 CREATE TABLE users (
     uid UUID PRIMARY KEY,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    api_token_hash BYTEA NOT NULL
+    email VARCHAR(255) NOT NULL UNIQUE
 );
 
 CREATE TABLE gateways (
