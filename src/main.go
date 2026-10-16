@@ -27,6 +27,11 @@ func main() {
 		log.Fatalf("Critical error: couldn't connect to Redis: %v", err)
 	}
 
+	err = repository.InitPostgres()
+	if err != nil {
+		log.Fatalf("Critical error: couldn't connect to Postgres: %v", err)
+	}
+
 	router := routes.NewRouter()
 
 	if err := http.ListenAndServe(":8080", router); err != nil {
