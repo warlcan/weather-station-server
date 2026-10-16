@@ -12,6 +12,8 @@ import (
 	"net/smtp"
 	"os"
 	"weather-server/src/repository"
+
+	"github.com/google/uuid"
 )
 
 type EmailData struct {
@@ -26,7 +28,7 @@ func hashToken(token string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func IsTokenValid(receivedToken string) bool {
+func VerifyToken(receivedToken string) bool {
 	count, err := repository.Redis.ExistsString("token:" + hashToken(receivedToken) + ":userid")
 	if err != nil {
 		log.Fatalf("Error in search: %v", err)
@@ -96,4 +98,28 @@ func SendCode(email string) bool {
 	}
 
 	return true
+}
+
+func VerifyCode(email string, receivedCode string) bool {
+	dbCode, err := repository.Redis.GetString("email:" + email + ":code")
+	if err != nil {
+		log.Printf("Error get string: %v", err)
+		return false
+	}
+
+	if receivedCode == dbCode {
+		return true
+	}
+
+	return false
+}
+
+func GenerateUserToken(email string) string {
+	token := uuid.New().String()
+	err := repository.Redis.WriteString("token:"+hashToken(token)+":userid", email)
+	if err != nil {
+		log.Printf("Error write token: %v", err)
+		return ""
+	}
+	return token
 }
