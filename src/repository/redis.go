@@ -59,3 +59,8 @@ func (r *RedisRepository) WriteStringTTL(key string, value string, ttl int) erro
 	err := r.client.Set(r.ctx, key, value, time.Duration(ttl)*time.Minute).Err()
 	return err
 }
+
+func (r *RedisRepository) DeleteString(key string) error {
+	err := r.client.Del(r.ctx, key).Err()
+	return err
+}
