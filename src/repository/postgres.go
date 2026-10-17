@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"uuid"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -43,16 +42,20 @@ func InitPostgres() error {
 	return nil
 }
 
-func (r *PostgresRepository) CreateUser(email string) (string, error) {
-	query := "INSERT INTO users (uid, email) VALUES ($1, $2)"
-	uid := uuid.New().String()
-	_, err := r.pool.Exec(r.ctx, query, uid, email)
-	return uid, err
-}
+func (r *PostgresRepository) UpsertUser(email string) (string, error) {
+	query := `
+		INSERT INTO users (uid, email) 
+		VALUES (gen_random_uuid(), $1)
+		ON CONFLICT (email) 
+		DO UPDATE SET email = EXCLUDED.email
+		RETURNING uid;
+	`
 
-func (r *PostgresRepository) GetUserId(email string) (string, error) {
-	query := "SELECT uid FROM users WHERE email = $1"
 	var uid string
 	err := r.pool.QueryRow(r.ctx, query, email).Scan(&uid)
-	return uid, err
+	if err != nil {
+		return "", err
+	}
+
+	return uid, nil
 }
