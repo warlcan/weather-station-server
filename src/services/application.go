@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"html/template"
 	"log"
@@ -100,33 +101,31 @@ func SendCode(email string) bool {
 	return true
 }
 
-func VerifyCode(email string, receivedCode string) bool {
+func SignInOrRegister(email string, receivedCode string) (string, error) {
 	dbCode, err := repository.Redis.GetString("email:" + email + ":code")
 	if err != nil {
-		log.Printf("Error get string: %v", err)
-		return false
+		log.Printf("Error getting code from Redis: %v", err)
+		return "", err
 	}
 
 	if receivedCode != dbCode {
-		return false
+		return "", errors.New("invalid verification code")
 	}
 
-	_, err = repository.PostgresDB.CreateUser(email)
-	return true
-}
-
-func GenerateUserToken(email string) string {
-	token := uuid.New().String()
-	uid, err := repository.PostgresDB.GetUserId(email)
+	uid, err := repository.PostgresDB.UpsertUser(email)
 	if err != nil {
-		log.Printf("Error get uid: %v", err)
-		return ""
+		log.Printf("Error upserting user: %v", err)
+		return "", err
 	}
 
+	token := uuid.New().String()
 	err = repository.Redis.WriteString("token:"+hashToken(token)+":userid", uid)
 	if err != nil {
-		log.Printf("Error write token: %v", err)
-		return ""
+		log.Printf("Error writing token to Redis: %v", err)
+		return "", err
 	}
-	return token
+
+	_ = repository.Redis.DeleteString("email:" + email + ":code")
+
+	return token, nil
 }
