@@ -52,24 +52,17 @@ func VerifyCodeHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(model.VerifyCodeResponse{Token: nil})
 		return
 	}
-
 	defer r.Body.Close()
 
-	if services.VerifyCode(req.Email, req.Code) {
-		generatedToken := services.GenerateUserToken(req.Email)
-
-		response := model.VerifyCodeResponse{
-			Token: &generatedToken,
-		}
-
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
-		return
-	} else {
-		response := model.VerifyCodeResponse{
-			Token: nil,
-		}
+	token, err := services.SignInOrRegister(req.Email, req.Code)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(model.VerifyCodeResponse{Token: nil})
+		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(model.VerifyCodeResponse{
+		Token: &token,
+	})
 }
