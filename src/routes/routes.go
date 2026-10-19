@@ -13,5 +13,7 @@ func NewRouter() http.Handler {
 	mux.HandleFunc("POST /api/app/auth/send-code", handler.SendCodeHandler)
 	mux.HandleFunc("POST /api/app/auth/verify-code", handler.VerifyCodeHandler)
 
+	mux.HandleFunc("POST /api/gateway/init", handler.InitGatewayHandler)
+
 	return mux
 }
