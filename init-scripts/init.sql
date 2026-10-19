@@ -13,7 +13,7 @@ CREATE TABLE gateways (
 
 CREATE TABLE weather_stations (
     uid BIGSERIAL PRIMARY KEY,
-    weather_station_hardware_id INT NOT NULL UNIQUE,
+    weather_station_hardware_id BIGINT NOT NULL UNIQUE,
     gateway_uid UUID NOT NULL REFERENCES gateways(uid) ON DELETE CASCADE,
     error_mask SMALLINT DEFAULT 0,
     name VARCHAR(100)
