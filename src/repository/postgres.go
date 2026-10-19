@@ -14,6 +14,11 @@ var PostgresDB *PostgresRepository
 
 var ErrGatewayAlreadyBound = errors.New("gateway already bound to another user")
 
+var (
+	ErrGatewayNotFound     = errors.New("gateway not found")
+	ErrStationAlreadyBound = errors.New("station already bound to another gateway")
+)
+
 type PostgresRepository struct {
 	pool *pgxpool.Pool
 	ctx  context.Context
@@ -83,4 +88,59 @@ func (r *PostgresRepository) UpsertGateway(gatewayHardwareId, userUid string) (s
 		return "", err
 	}
 	return uid, nil
+}
+
+func (r *PostgresRepository) GetGatewayByHardwareId(gatewayHardwareId string) (string, error) {
+	const query = `SELECT uid FROM gateways WHERE gateway_hardware_id = $1`
+
+	var uid string
+	err := r.pool.QueryRow(r.ctx, query, gatewayHardwareId).Scan(&uid)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrGatewayNotFound
+	}
+	if err != nil {
+		return "", err
+	}
+	return uid, nil
+}
+
+func (r *PostgresRepository) UpsertStationsForGateway(gatewayUid string, stationIds []int64) (int, error) {
+	if len(stationIds) == 0 {
+		return 0, nil
+	}
+
+	tx, err := r.pool.Begin(r.ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback(r.ctx)
+
+	const query = `
+		INSERT INTO weather_stations (weather_station_hardware_id, gateway_uid)
+		VALUES ($1, $2)
+		ON CONFLICT (weather_station_hardware_id) DO UPDATE
+			SET gateway_uid = EXCLUDED.gateway_uid
+			WHERE weather_stations.gateway_uid = EXCLUDED.gateway_uid
+		RETURNING (xmax = 0) AS inserted;
+	`
+
+	added := 0
+	for _, sid := range stationIds {
+		var inserted bool
+		err := tx.QueryRow(r.ctx, query, sid, gatewayUid).Scan(&inserted)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrStationAlreadyBound
+		}
+		if err != nil {
+			return 0, err
+		}
+		if inserted {
+			added++
+		}
+	}
+
+	if err := tx.Commit(r.ctx); err != nil {
+		return 0, err
+	}
+	return added, nil
 }
