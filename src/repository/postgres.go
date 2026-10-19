@@ -2,13 +2,17 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var PostgresDB *PostgresRepository
+
+var ErrGatewayAlreadyBound = errors.New("gateway already bound to another user")
 
 type PostgresRepository struct {
 	pool *pgxpool.Pool
@@ -57,5 +61,26 @@ func (r *PostgresRepository) UpsertUser(email string) (string, error) {
 		return "", err
 	}
 
+	return uid, nil
+}
+
+func (r *PostgresRepository) UpsertGateway(gatewayHardwareId, userUid string) (string, error) {
+	const query = `
+		INSERT INTO gateways (uid, gateway_hardware_id, user_uid)
+		VALUES (gen_random_uuid(), $1, $2)
+		ON CONFLICT (gateway_hardware_id) DO UPDATE
+			SET user_uid = EXCLUDED.user_uid
+			WHERE gateways.user_uid = EXCLUDED.user_uid
+		RETURNING uid;
+	`
+
+	var uid string
+	err := r.pool.QueryRow(r.ctx, query, gatewayHardwareId, userUid).Scan(&uid)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrGatewayAlreadyBound
+	}
+	if err != nil {
+		return "", err
+	}
 	return uid, nil
 }
