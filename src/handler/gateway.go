@@ -98,3 +98,52 @@ func UpdateStationsListHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(resp)
 }
+
+func StoreMeasureHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req model.MeasureRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("measure: json decode error: %v", err)
+		http.Error(w, "invalid json", http.StatusBadRequest)
+		return
+	}
+
+	if req.GatewayHardwareId == "" || req.WeatherStationHardwareId == "" {
+		http.Error(w, "GatewayHardwareId and WeatherStationHardwareId are required", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := uuid.Parse(req.GatewayHardwareId); err != nil {
+		http.Error(w, "GatewayHardwareId must be a valid UUID", http.StatusBadRequest)
+		return
+	}
+
+	if req.Time.IsZero() {
+		http.Error(w, "Time is required", http.StatusBadRequest)
+		return
+	}
+
+	resp, err := gatewayService.StoreMeasurement(&req)
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrGatewayNotFound):
+			http.Error(w, "gateway not found", http.StatusNotFound)
+		case errors.Is(err, repository.ErrStationNotFound):
+			http.Error(w, "weather station not registered for this gateway", http.StatusNotFound)
+		case errors.Is(err, services.ErrInvalidStationId):
+			http.Error(w, "invalid station hardware id", http.StatusBadRequest)
+		default:
+			log.Printf("StoreMeasure error: %v", err)
+			http.Error(w, "internal error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(resp)
+}
