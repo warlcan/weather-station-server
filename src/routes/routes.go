@@ -15,5 +15,10 @@ func NewRouter() http.Handler {
 
 	mux.HandleFunc("POST /api/gateway/init", handler.InitGatewayHandler)
 	mux.HandleFunc("POST /api/gateway/list/update", handler.UpdateStationsListHandler)
+	mux.HandleFunc("POST /api/gateway/measure", handler.StoreMeasureHandler)
+
+	mux.HandleFunc("GET /api/app/stations", handler.ListStationsHandler)
+	mux.HandleFunc("GET /api/app/measurements", handler.ListMeasurementsHandler)
+
 	return mux
 }
