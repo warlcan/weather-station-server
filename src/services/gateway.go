@@ -64,3 +64,37 @@ func (s *GatewayService) UpdateStationsList(req *model.UpdateStationsListRequest
 		Total: len(ids),
 	}, nil
 }
+
+func (s *GatewayService) StoreMeasurement(req *model.MeasureRequest) (*model.MeasureResponse, error) {
+	gatewayUid, err := repository.PostgresDB.GetGatewayByHardwareId(req.GatewayHardwareId)
+	if err != nil {
+		return nil, err
+	}
+
+	v, err := strconv.ParseUint(req.WeatherStationHardwareId, 16, 32)
+	if err != nil {
+		log.Printf("measure: bad station id %q: %v", req.WeatherStationHardwareId, err)
+		return nil, ErrInvalidStationId
+	}
+	stationHwId := int64(uint32(v))
+
+	stationUid, err := repository.PostgresDB.GetStationUidForGateway(gatewayUid, stationHwId)
+	if err != nil {
+		return nil, err
+	}
+
+	m := repository.Measurement{
+		Time:              req.Time,
+		WeatherStationUid: stationUid,
+		Temperature:       req.Temperature,
+		Humidity:          req.Humidity,
+		Pressure:          req.Pressure,
+		VoltageLevel:      req.VoltageLevel,
+	}
+
+	if err := repository.PostgresDB.InsertMeasurement(m, req.ErrorMask); err != nil {
+		return nil, err
+	}
+
+	return &model.MeasureResponse{Ok: true}, nil
+}
