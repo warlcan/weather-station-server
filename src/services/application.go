@@ -12,6 +12,8 @@ import (
 	"math/big"
 	"net/smtp"
 	"os"
+	"time"
+	"weather-server/src/model"
 	"weather-server/src/repository"
 
 	"github.com/google/uuid"
@@ -128,4 +130,67 @@ func SignInOrRegister(email string, receivedCode string) (string, error) {
 	_ = repository.Redis.DeleteString("email:" + email + ":code")
 
 	return token, nil
+}
+
+func GetUserIdByToken(token string) (string, error) {
+	return repository.Redis.GetString("token:" + hashToken(token) + ":userid")
+}
+
+func ListUserStations(userUid string) ([]model.AppWeatherStation, error) {
+	rows, err := repository.PostgresDB.ListUserStations(userUid)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]model.AppWeatherStation, 0, len(rows))
+	for _, r := range rows {
+		out = append(out, model.AppWeatherStation{
+			Uid:        r.Uid,
+			HardwareId: fmt.Sprintf("%08x", uint32(r.HardwareId)),
+			Name:       r.Name,
+			ErrorMask:  r.ErrorMask,
+			GatewayUid: r.GatewayUid,
+		})
+	}
+	return out, nil
+}
+
+func ListMeasurements(userUid string, stationUids []int64) (map[int64][]model.AppMeasurement, error) {
+	stations, err := repository.PostgresDB.ListUserStations(userUid)
+	if err != nil {
+		return nil, err
+	}
+
+	allowed := make(map[int64]struct{}, len(stations))
+	for _, s := range stations {
+		allowed[s.Uid] = struct{}{}
+	}
+
+	filtered := make([]int64, 0, len(stationUids))
+	for _, id := range stationUids {
+		if _, ok := allowed[id]; ok {
+			filtered = append(filtered, id)
+		}
+	}
+	if len(filtered) == 0 {
+		return map[int64][]model.AppMeasurement{}, nil
+	}
+
+	since := time.Now().Add(-24 * time.Hour)
+	rows, err := repository.PostgresDB.ListHourlyMeasurements(filtered, since)
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(map[int64][]model.AppMeasurement)
+	for _, m := range rows {
+		out[m.WeatherStationUid] = append(out[m.WeatherStationUid], model.AppMeasurement{
+			Time:         m.Time,
+			Temperature:  m.Temperature,
+			Humidity:     m.Humidity,
+			Pressure:     m.Pressure,
+			VoltageLevel: m.VoltageLevel,
+		})
+	}
+	return out, nil
 }
